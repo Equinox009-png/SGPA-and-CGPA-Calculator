@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGPA & CGPA Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin: 20px 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .subject-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .subject-row input, .subject-row select {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .add-btn {
+      background-color: #007bff;
+      color: white;
+    }
+    .calculate-btn {
+      background-color: #28a745;
+      color: white;
+    }
+    .remove-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      text-align: center;
+      color: #333;
+    }
+    .input-group {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      .subject-row input, .subject-row select, button {
+        flex: 1 0 100%;
+        margin-bottom: 10px;
+      }
+      button {
+        width: 100%;
+      }
+      .input-group input, .input-group button {
+        flex: 1 0 100%;
+        margin-bottom: 10px;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .subject-row input, .subject-row select {
+        flex: 1;
+      }
+      .input-group input {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SGPA & CGPA Calculator</h1>
+
+    <div id="subjects-container">
+      <div class="subject-row">
+        <input type="text" placeholder="Subject" class="subject">
+        <input type="number" placeholder="Credits" class="credits" min="1">
+        <select class="grade" onchange="updateGradePoints(this)">
+          <option value="">Grade</option>
+          <option value="O">O</option>
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+          <option value="D">D</option>
+          <option value="E">E</option>
+          <option value="F">F</option>
+        </select>
+        <input type="text" class="grade-points" placeholder="Grade Points" readonly>
+        <button class="remove-btn" onclick="removeSubject(this)">Remove</button>
+      </div>
+    </div>
+
+    <button class="add-btn" onclick="addSubject()">Add Subject</button>
+    <button class="calculate-btn" onclick="calculateSGPA()">Calculate SGPA</button>
+
+    <div class="input-group">
+      <input type="number" id="total-cgpa-credits" placeholder="Total Credits Completed">
+      <input type="number" id="current-cgpa" placeholder="Current CGPA">
+      <button class="calculate-btn" onclick="calculateCGPA()">Calculate CGPA</button>
+    </div>
+
+    <div class="input-group">
+      <input type="number" id="target-sgpa" placeholder="Target SGPA">
+      <input type="number" id="target-credits" placeholder="Total Credits for Target">
+      <button class="calculate-btn" onclick="findSGPATarget()">Find Target SGPA</button>
+    </div>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    const gradePoints = {
+      O: 10,
+      A: 9.5,
+      B: 8.5,
+      C: 7.5,
+      D: 6.5,
+      E: 5.5,
+      F: 0
+    };
+
+    function addSubject() {
+      const container = document.getElementById('subjects-container');
+      const subjectRow = document.createElement('div');
+      subjectRow.className = 'subject-row';
+
+      subjectRow.innerHTML = `
+        <input type="text" placeholder="Subject" class="subject">
+        <input type="number" placeholder="Credits" class="credits" min="1">
+        <select class="grade" onchange="updateGradePoints(this)">
+          <option value="">Grade</option>
+          <option value="O">O</option>
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+          <option value="D">D</option>
+          <option value="E">E</option>
+          <option value="F">F</option>
+        </select>
+        <input type="text" class="grade-points" placeholder="Grade Points" readonly>
+        <button class="remove-btn" onclick="removeSubject(this)">Remove</button>
+      `;
+
+      container.appendChild(subjectRow);
+    }
+
+    function removeSubject(button) {
+      button.parentElement.remove();
+    }
+
+    function updateGradePoints(selectElement) {
+      const grade = selectElement.value;
+      const gradePoint = gradePoints[grade] || '';
+      const gradePointsInput = selectElement.parentElement.querySelector('.grade-points');
+      gradePointsInput.value = gradePoint;
+    }
+
+    function calculateSGPA() {
+      const subjects = document.querySelectorAll('.subject-row');
+      let totalCredits = 0;
+      let weightedSum = 0;
+      let isValid = true;
+
+      subjects.forEach(row => {
+        const credits = parseFloat(row.querySelector('.credits').value);
+        const grade = row.querySelector('.grade').value;
+        const gradePoint = gradePoints[grade];
+
+        if (!isNaN(credits) && gradePoint !== undefined) {
+          totalCredits += credits;
+          weightedSum += credits * gradePoint;
+        } else {
+          isValid = false;
+        }
+      });
+
+      const resultDiv = document.getElementById('result');
+      if (isValid && totalCredits > 0) {
+        const sgpa = (weightedSum / totalCredits).toFixed(2);
+        resultDiv.textContent = `Your SGPA is: ${sgpa}`;
+      } else {
+        resultDiv.textContent = 'Please enter valid credits and grades for all subjects.';
+      }
+    }
+
+    function calculateCGPA() {
+      const totalCredits = parseFloat(document.getElementById('total-cgpa-credits').value);
+      const currentCGPA = parseFloat(document.getElementById('current-cgpa').value);
+
+      const subjects = document.querySelectorAll('.subject-row');
+      let newCredits = 0;
+      let newWeightedSum = 0;
+
+      subjects.forEach(row => {
+        const credits = parseFloat(row.querySelector('.credits').value);
+        const grade = row.querySelector('.grade').value;
+        const gradePoint = gradePoints[grade];
+
+        if (!isNaN(credits) && gradePoint !== undefined) {
+          newCredits += credits;
+          newWeightedSum += credits * gradePoint;
+        }
+      });
+
+      const resultDiv = document.getElementById('result');
+      if (totalCredits > 0 && newCredits > 0) {
+        const totalWeightedSum = (currentCGPA * totalCredits) + newWeightedSum;
+        const cgpa = (totalWeightedSum / (totalCredits + newCredits)).toFixed(2);
+        resultDiv.textContent = `Your updated CGPA is: ${cgpa}`;
+      } else {
+        resultDiv.textContent = 'Please enter valid data for CGPA calculation.';
+      }
+    }
+
+    function findSGPATarget() {
+      const targetSGPA = parseFloat(document.getElementById('target-sgpa').value);
+      const targetCredits = parseFloat(document.getElementById('target-credits').value);
+
+      const subjects = document.querySelectorAll('.subject-row');
+      let currentCredits = 0;
+      let currentWeightedSum = 0;
+
+      subjects.forEach(row => {
+        const credits = parseFloat(row.querySelector('.credits').value);
+        const grade = row.querySelector('.grade').value;
+        const gradePoint = gradePoints[grade];
+
+        if (!isNaN(credits) && gradePoint !== undefined) {
+          currentCredits += credits;
+          currentWeightedSum += credits * gradePoint;
+        }
+      });
+
+      const resultDiv = document.getElementById('result');
+      if (targetCredits > 0 && targetSGPA > 0 && currentCredits < targetCredits) {
+        const requiredSum = (targetSGPA * targetCredits) - currentWeightedSum;
+        const requiredSGPA = (requiredSum / (targetCredits - currentCredits)).toFixed(2);
+        resultDiv.textContent = `You need an SGPA of: ${requiredSGPA} in the remaining subjects.`;
+      } else {
+        resultDiv.textContent = 'Please enter valid data for SGPA target calculation.';
+      }
+    }
+  </script>
+</body>
+</html>
